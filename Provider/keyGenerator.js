@@ -2,9 +2,9 @@ const { generateKeyPairSync } = require("crypto");
 const crypto = require("crypto");
 
 /*
-* Creates a unique pass phrase
-* @returns phrase
-*/
+ * Creates a unique pass phrase
+ * @returns phrase
+ */
 function passPhrase() {
   var phrase = "";
   var characters =
@@ -12,15 +12,15 @@ function passPhrase() {
   for (let i = 0; i < 255; i++) {
     phrase += characters.charAt(Math.random() * characters.length);
   }
-  
+
   return phrase.toString();
 }
 
 /*
-* Generate RSA public and private key pair to validate between Tool and the Platform
-* @returns key pair
-*  NOTE: The signature and the verification needs to be updated with a proper consumerID or some other unique identifer
-*/
+ * Generate RSA public and private key pair to validate between Tool and the Platform
+ * @returns key pair
+ *  NOTE: The signature and the verification needs to be updated with a proper consumerID or some other unique identifer
+ */
 function keyGenerator() {
   var keys = {};
   var kid = passPhrase();
@@ -31,14 +31,14 @@ function keyGenerator() {
       modulusLength: 4096,
       publicKeyEncoding: {
         type: "spki",
-        format: "pem"
+        format: "pem",
       },
       privateKeyEncoding: {
         type: "pkcs8",
         format: "pem",
         cipher: "aes-256-cbc",
-        passphrase: kid
-      }
+        passphrase: kid,
+      },
     },
     (err, publicKey, privateKey) => {
       var sign = crypto.createSign("RSA-SHA256");
@@ -53,7 +53,7 @@ function keyGenerator() {
     }
   );
 
-  keys = { 'publicKey': publicKey , 'privateKey': privateKey, keyID: kid };
+  keys = { publicKey: publicKey, privateKey: privateKey, keyID: kid };
   return keys;
 }
 
