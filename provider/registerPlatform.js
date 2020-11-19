@@ -1,21 +1,6 @@
-const mongoose = require("mongoose");
-const { Database } = require("./mongoDB/Database.js");
-const { keyGenerator } = require("./keyGenerator.js");
-const Schema = mongoose.Schema;
-
-const platformSchema = new Schema({
-  consumerUrl: String,
-  consumerName: String,
-  consumerToolClientID: String,
-  consumerAuthorizationURL: String,
-  consumerAccessTokenURL: String,
-  consumerRedirect_URI: String,
-  kid: Object,
-  consumerAuthorizationconfig: {
-    method: String,
-    key: String,
-  },
-});
+const { Database } = require('./mongoDB/Database.js');
+const { keyGenerator } = require('./keyGenerator.js');
+const schemas = require('./schemas');
 
 /*
  * Register a new Platform for the Tool
@@ -28,59 +13,44 @@ const registerPlatform = async (
   consumerToolClientID /* Client ID created from the LMS. */,
   consumerAuthorizationURL /* URL that the LMS redirects to launch the tool. */,
   consumerAccessTokenURL /* URL that the LMS redirects to obtain an access token/login . */,
-  consumerRedirect_URI /* URL that the LMS redirects to launch tool . */,
-  consumerAuthorizationconfig /* Authentication method and key for verifying messages from the platform. {method: "RSA_KEY", key:"PUBLIC KEY..."} */
+  consumerRedirectURI /* URL that the LMS redirects to launch tool . */,
+  // Authentication method and key for verifying messages from
+  //  the platform. {method: "RSA_KEY", key:"PUBLIC KEY..."}
+  consumerAuthorizationconfig,
 ) => {
   if (
-    !consumerUrl ||
-    !consumerName ||
-    !consumerToolClientID ||
-    !consumerAuthorizationURL ||
-    !consumerAccessTokenURL ||
-    !consumerRedirect_URI ||
-    !consumerAuthorizationconfig
+    !consumerUrl
+    || !consumerName
+    || !consumerToolClientID
+    || !consumerAuthorizationURL
+    || !consumerAccessTokenURL
+    || !consumerRedirectURI
+    || !consumerAuthorizationconfig
   ) {
-    console.log("Error: registerPlatform function is missing argument.");
+    console.log('Error: registerPlatform function is missing argument.');
   }
-  let existingPlatform;
-
-  console.log(
-    require("util").inspect("registrPlatform", { depth: null, colors: true })
-  );
-  //checks database for existing platform.
-  await Database.Get("platforms", platformSchema, { consumerUrl: consumerUrl })
+  // checks database for existing platform.
+  return Database.Get('platforms', schemas.PlatformSchema, { consumerUrl })
     .then((registeringPlatform) => {
-      console.log(
-        require("util").inspect(registeringPlatform, {
-          depth: null,
-          colors: true,
-        })
-      );
-      if (
-        typeof registeringPlatform === "undefined" ||
-        registeringPlatform.length === 0
-      ) {
+      if (!registeringPlatform || !registeringPlatform.length) {
         const keyPairs = keyGenerator();
 
         // creates/inserts platform data into database.
-        Database.Insert("platforms", platformSchema, {
-          consumerUrl: consumerUrl,
-          consumerName: consumerName,
-          consumerToolClientID: consumerToolClientID,
-          consumerAuthorizationURL: consumerAuthorizationURL,
-          consumerAccessTokenURL: consumerAccessTokenURL,
-          consumerRedirect_URI: consumerRedirect_URI,
+        Database.Insert('platforms', schemas.PlatformSchema, {
+          consumerUrl,
+          consumerName,
+          consumerToolClientID,
+          consumerAuthorizationURL,
+          consumerAccessTokenURL,
+          consumerRedirectURI,
           kid: keyPairs,
-          consumerAuthorizationconfig: consumerAuthorizationconfig,
+          consumerAuthorizationconfig,
         });
         return console.log(`Platform registered at: ${consumerUrl}`);
-      } else {
-        existingPlatform = registeringPlatform;
-        return existingPlatform;
       }
+      return registeringPlatform;
     })
     .catch((err) => console.log(`Error finding platform: ${err}`));
-  return existingPlatform;
 };
 
-module.exports = { platformSchema, registerPlatform };
+module.exports = registerPlatform;
