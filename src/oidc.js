@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const url = require('url');
+const crypto = require('crypto');
 const { Database } = require('./mongoDB/Database');
 const schemas = require('./schemas');
 
@@ -29,16 +30,30 @@ function isValidOidcLogin(req) {
  * @param signed - boolean whether string should be signed with Tool's private key
  * @returns unique string
  */
-function createUniqueString(length) {
-  let uniqueString = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < length; i += 1) {
-    uniqueString += possible.charAt(
-      Math.floor(Math.random() * possible.length),
-    );
+function createUniqueString(length, shouldSign) {
+  const random = crypto.randomBytes(length).toString('hex');
+  if (shouldSign) {
+    const signedRandom = crypto
+      .createHash('SHA256')
+      .update(random)
+      .digest('hex');
+    return { signedRandom, random };
   }
+
   // TODO: if signed === true, sign the string with our private key
-  return uniqueString;
+  return { random };
+}
+
+/*
+ * Validate that the signed string is valid
+ * @param signedString - signed string that needs to be verified
+ * @param unsignedString - string that was signed
+ * @returns - boolean on whether it is valid or not
+ */
+function veifyUniqueString(signedString, unsignedString) {
+  // TODO: should we use hmac with private/public key signatures <23-11-20, Vora, Deep> //
+  const hash = crypto.createHash('SHA256').update(unsignedString).digest('hex');
+  return signedString === hash;
 }
 
 /*
@@ -54,10 +69,10 @@ async function createOidcResponse(req, res) {
   const errors = [];
 
   // Save the OIDC Login Request to reference later during current session
-  req.session.loginRequest = req.body;
+  req.session.ltiLoginRequest = req.body;
 
   const dbResult = await Database.Get('platforms', schemas.PlatformSchema, {
-    consumerUrl: req.session.loginRequest.iss,
+    consumerUrl: req.session.ltiLoginRequest.iss,
   });
 
   if (!dbResult.length || !dbResult[0]) {
@@ -67,30 +82,33 @@ async function createOidcResponse(req, res) {
   const platform = dbResult[0];
 
   // Save the Platform information from the database to reference later during current session
-  req.session.platform = platform;
+  req.session.ltiPlatform = platform;
 
   errors.push(...isValidOidcLogin(req));
 
-  if (!errors.length && req.session.platform) {
+  if (!errors.length && req.session.ltiPlatform) {
+    const { signedRandom, random } = createUniqueString(30, true);
+    const { random: nonce } = createUniqueString(30, false);
+
     const response = {
       scope: 'openid',
       response_type: 'id_token',
-      client_id: req.session.platform.consumerToolClientID,
-      redirect_uri: req.session.platform.consumerRedirectURI,
+      client_id: req.session.ltiPlatform.consumerToolClientID,
+      redirect_uri: req.session.ltiPlatform.consumerRedirectURI,
       login_hint: req.body.login_hint,
-      state: createUniqueString(30, true),
+      state: signedRandom,
       response_mode: 'form_post',
-      nonce: createUniqueString(25, false),
+      nonce,
       prompt: 'none',
       lti_message_hint: req.body.lti_message_hint && req.body.lti_message_hint,
     };
     // Save the OIDC Login Response to reference later during current session
-    req.session.loginResponse = response;
+    req.session.ltiLoginResponse = { ...response, unsignedState: random };
 
     return res.redirect(
       url.format({
         pathname: platform.consumerAuthorizationURL,
-        query: req.session.loginResponse,
+        query: response,
       }),
     );
   }
@@ -99,4 +117,4 @@ async function createOidcResponse(req, res) {
   return res.send(`Error with OIDC Login: ${errors}`);
 }
 
-module.exports = { createOidcResponse, createUniqueString };
+module.exports = { createOidcResponse, createUniqueString, veifyUniqueString };

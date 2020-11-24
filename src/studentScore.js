@@ -21,18 +21,18 @@ function generateChallenge(codeVerifier) {
  */
 function codeRequest(req, scope) {
   const codeVerifier = passPhrase();
-  req.session.code_verifier = codeVerifier;
+  req.session.ltiCodeVerifier = codeVerifier;
 
   const payload = {
     response_type: 'code',
-    client_id: req.session.platform.consumerToolClientID,
+    client_id: req.session.ltiPlatform.consumerToolClientID,
     redirect_uri: 'https://piedpiper.localtunnel.me/auth_code',
     scope,
     state: passPhrase(),
     code_challenge: generateChallenge(codeVerifier),
     code_challenge_method: 'S256',
   };
-  return `${req.session.platform.consumerAuthorizationURL}?${Object.keys(
+  return `${req.session.ltiPlatform.consumerAuthorizationURL}?${Object.keys(
     payload,
   )
     .map((key) => `${key}=${payload[key]}`)
@@ -46,10 +46,10 @@ function codeRequest(req, scope) {
  */
 function prepSendScore(req) {
   if (
-    req.session.decodedLaunch[
+    req.session.ltiDecodedToken[
       'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'
     ]
-    && req.session.decodedLaunch[
+    && req.session.ltiDecodedToken[
       'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'
     ].scope.includes('https://purl.imsglobal.org/spec/lti-ags/scope/score')
   ) {
@@ -71,18 +71,18 @@ function sendScore(req, score, scoreMax) {
   const payload = {
     grant_type: 'authorization_code',
     code: req.params.code,
-    client_id: req.session.platform.consumerToolClientID,
+    client_id: req.session.ltiPlatform.consumerToolClientID,
     redirect_uri: 'https://piedpiper.localtunnel.me/auth_code',
     scope: 'https://purl.imsglobal.org/spec/lti-ags/scope/score',
-    code_verifier: req.session.code_verifier,
+    code_verifier: req.session.ltiCodeVerifier,
   };
   const base64UserPass = encode(
-    `${req.session.platform.kid[0].keyID}:${req.session.platform.kid[0].privateKey}`,
+    `${req.session.ltiPlatform.kid[0].keyID}:${req.session.ltiPlatform.kid[0].privateKey}`,
     'base64',
   );
 
   axios
-    .post(req.session.platform.consumerAccessTokenURL, payload, {
+    .post(req.session.ltiPlatform.consumerAccessTokenURL, payload, {
       headers: {
         Authorization: `Basic ${base64UserPass}`,
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -91,7 +91,7 @@ function sendScore(req, score, scoreMax) {
     .then((result) => {
       // With access token, send score to Platform
       const scoreMessage = {
-        userId: req.session.payload.sub,
+        userId: req.session.ltiPayload.sub,
         scoreGiven: score,
         scoreMaximum: scoreMax,
         timestamp: new Date(Date.now()).toJSON(),
@@ -100,7 +100,7 @@ function sendScore(req, score, scoreMax) {
       };
       axios
         .post(
-          `${req.session.payload['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'].lineitem}/scores`,
+          `${req.session.ltiPayload['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'].lineitem}/scores`,
           scoreMessage,
           {
             headers: {

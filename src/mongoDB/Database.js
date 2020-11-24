@@ -11,14 +11,6 @@ class Database {
       .catch((err) => console.log(`Error finding platform ${err}`));
   }
 
-  static async GetKey(collection, platformSchema, query) {
-    const Model = mongoose.model(collection, platformSchema);
-
-    return Model.find(query)
-      .then((key) => key[0].kid.publicKey)
-      .catch((err) => console.log(`Error finding platform ${err}`));
-  }
-
   static Insert(collection, platformSchema, platform) {
     const Model = mongoose.model(collection, platformSchema);
 
