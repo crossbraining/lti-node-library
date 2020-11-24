@@ -45,7 +45,7 @@ function isValidOidcLogin(req) {
  * @param path - if any path needs to be appended to the URI to launch the Tool to the correct route
  * @returns object with errors if invalid launch, otherwise, redirects to Tool
  */
-async function launchTool(req, res, path) {
+const launchTool = () => async (req, res, path) => {
   let errors = [];
 
   // If Platform rejected login response, show error
@@ -64,7 +64,7 @@ async function launchTool(req, res, path) {
 
     // Get the key to verify the JWT
     const keys = await axios.get(
-      `${req.session.ltiPlatform.consumerAuthorizationconfig.key}?kid=${basicDecoded.header.kid}`,
+      `${req.session.ltiPlatform.consumerAuthorizationConfigKey}?kid=${basicDecoded.header.kid}`,
     );
 
     try {
@@ -97,6 +97,6 @@ async function launchTool(req, res, path) {
     });
   }
   return null;
-}
+};
 
 module.exports = { launchTool };

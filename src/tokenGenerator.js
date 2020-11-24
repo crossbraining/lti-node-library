@@ -2,13 +2,13 @@ const jwt = require('jsonwebtoken');
 const { validOauth2Request } = require('./oauth2Validation');
 
 /*
- * Creates a JSON web token in accordance with the LTI 1.3 standard 
+ * Creates a JSON web token in accordance with the LTI 1.3 standard
  * and in conjunction with Oauth 2.0 validation.
  * @param errors - errors array from validation
  * @param res - Result to send
  * @returns result with JWT, if successful, or an object with errors listed
  */
-function tokenMaker(req, res) {
+const tokenMaker = () => async (req, res) => {
   const errors = validOauth2Request(req);
 
   if (errors.length === 0) {
@@ -43,6 +43,6 @@ function tokenMaker(req, res) {
     error: 'invalid_request',
     errors,
   });
-}
+};
 
-module.exports = { tokenMaker };
+module.exports = tokenMaker;
