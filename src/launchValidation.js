@@ -62,12 +62,12 @@ const launchTool = () => async (req, res, path) => {
     const jwtString = req.body.id_token;
     const basicDecoded = jwt.decode(jwtString, { complete: true });
 
-    // Get the key to verify the JWT
-    const keys = await axios.get(
-      `${req.session.ltiPlatform.consumerAuthorizationConfigKey}?kid=${basicDecoded.header.kid}`,
-    );
-
     try {
+      // Get the key to verify the JWT
+      const keys = await axios.get(
+        `${req.session.ltiPlatform.consumerAuthorizationConfigKey}?kid=${basicDecoded.header.kid}`,
+      );
+
       const decoded = await promisify(jwt.verify)(
         jwtString,
         jwkToPem(keys.data.keys[0]),
