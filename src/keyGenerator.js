@@ -1,3 +1,4 @@
+// TODO: revist this to see why its required and how to use it <24-11-20, Vora, Deep> //
 const { promisify } = require('util');
 const crypto = require('crypto');
 
@@ -8,13 +9,7 @@ const generateKeyPair = promisify(crypto.generateKeyPair);
  * @returns phrase
  */
 function passPhrase() {
-  let phrase = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 255; i += 1) {
-    phrase += characters.charAt(Math.random() * characters.length);
-  }
-
-  return phrase.toString();
+  return crypto.randomBytes(128).toString('hex');
 }
 
 /*
@@ -39,17 +34,6 @@ async function keyGenerator() {
       passphrase: kid,
     },
   });
-
-  // is this even required?
-  // const sign = crypto.createSign('RSA-SHA256');
-  // sign.update('ConsumerClientID');
-  // const signature = sign.sign(privateKey, 'base64');
-  // console.info('signature: %s', signature);
-
-  // const verify = crypto.createVerify('RSA-SHA256');
-  // verify.update('ConsumerClientID');
-  // const verified = verify.verify(publicKey, 'base64');
-  // console.info('is signature ok? %s', verified);
 
   return { publicKey, privateKey, keyID: kid };
 }

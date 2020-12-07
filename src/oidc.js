@@ -2,8 +2,6 @@ require('dotenv').config();
 
 const url = require('url');
 const crypto = require('crypto');
-const { Database } = require('./mongoDB/Database');
-const schemas = require('./schemas');
 
 /*
  * Validates OIDC login request. Checkes required parameters are present.
@@ -65,21 +63,17 @@ function veifyUniqueString(signedString, unsignedString) {
  * @return if invalid request, returns array of errors with the request
  */
 
-async function createOidcResponse(req, res) {
+const createOidcResponse = (opt) => async (req, res) => {
   const errors = [];
 
   // Save the OIDC Login Request to reference later during current session
   req.session.ltiLoginRequest = req.body;
 
-  const dbResult = await Database.Get('platforms', schemas.PlatformSchema, {
-    consumerUrl: req.session.ltiLoginRequest.iss,
-  });
+  const platform = await opt.store.getPlatform(req.session.ltiLoginRequest.iss);
 
-  if (!dbResult.length || !dbResult[0]) {
+  if (!platform) {
     return res.send(['Issuer invalid: not registered']);
   }
-
-  const platform = dbResult[0];
 
   // Save the Platform information from the database to reference later during current session
   req.session.ltiPlatform = platform;
@@ -115,6 +109,6 @@ async function createOidcResponse(req, res) {
 
   // errors were found, so return the errors
   return res.send(`Error with OIDC Login: ${errors}`);
-}
+};
 
 module.exports = { createOidcResponse, createUniqueString, veifyUniqueString };
