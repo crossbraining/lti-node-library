@@ -1,6 +1,6 @@
 {
   "name": "lti-node-library",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "This is a published npm package for implementing an IMS-Global LTI v1.3 conformant Tool Provider.",
   "main": "index.js",
   "directories": {
@@ -14,24 +14,32 @@
     "type": "git",
     "url": "git+https://github.com/SanDiegoCodeSchool/lti-node-library.git"
   },
+  "typings": "index.d.ts",
   "dependencies": {
+    "ajv": "^7.0.0-beta.1",
     "axios": "^0.19.0",
     "base64url": "^3.0.1",
-    "connect-mongo": "^3.0.0",
+    "connect-mongo": "^3.2.0",
     "dotenv": "^8.0.0",
     "ejs": "^2.6.2",
     "express": "^4.17.1",
     "express-session": "^1.16.2",
     "jsonwebtoken": "^8.5.1",
     "jwk-to-pem": "^2.0.1",
-    "mongoose": "^5.6.6",
+    "mongoose": "^5.10.9",
     "morgan": "^1.9.1",
     "nodemon": "^1.19.1",
     "qs": "^6.7.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.1",
     "mocha": "^6.2.0"
+  },
+  "peerDependencies": {
+    "mongoose": "^5.10.9"
   },
   "keywords": [
     "ims",
@@ -48,6 +56,11 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/SanDiegoCodeSchool/lti-node-library/issues"
+  },
+  "eslintConfig": {
+    "extends": [
+      "airbnb-base"
+    ]
   },
   "homepage": "https://github.com/SanDiegoCodeSchool/lti-node-library#readme"
 }
