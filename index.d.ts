@@ -29,6 +29,7 @@ declare function LtiNode(
   tokenMaker: any;
   registerPlatform: (...LtiPlatform) => {};
   launchTool: any;
+  getPublicKey: any;
 };
 
 export = LtiNode;

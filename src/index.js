@@ -3,6 +3,7 @@ const tokenMaker = require('./tokenGenerator');
 const registerPlatform = require('./registerPlatform');
 const { launchTool } = require('./launchValidation');
 const MemoryStore = require('../store/MemoryStore');
+const getPublicKey = require('./getPublicKey');
 
 const validateStore = (store) => {
   if (!store.getPlatform || !store.addPlatform) {
@@ -22,5 +23,6 @@ module.exports = (options = {}) => {
     tokenMaker: tokenMaker(opt),
     registerPlatform: registerPlatform(opt),
     launchTool: launchTool(opt),
+    getPublicKey: getPublicKey(opt),
   };
 };

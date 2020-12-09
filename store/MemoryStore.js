@@ -6,13 +6,20 @@ module.exports = class MemoryStore {
    * @param consumerUrl string consumer url to find the platform for
    *
    */
+  // eslint-disable-next-line class-methods-use-this
   async getPlatform(consumerUrl) {
     return db[consumerUrl];
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  async getPlatformById(uuid) {
+    return db[uuid];
+  }
+
+  // eslint-disable-next-line class-methods-use-this
   async addPlatform(platformObject) {
     db[platformObject.consumerUrl] = platformObject;
-    console.log(require('util').inspect(db, { depth: null, colors: true }));
+    db[platformObject.uuid] = platformObject;
     return db[platformObject.consumerUrl];
   }
 };

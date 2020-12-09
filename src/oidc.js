@@ -25,12 +25,12 @@ function isValidOidcLogin(req) {
 /*
  * Create a long, unique string consisting of upper and lower case letters and numbers.
  * @param length - desired length of string
- * @param signed - boolean whether string should be signed with Tool's private key
+ * @param privateKey - private key to sign the unique string with, if provided
  * @returns unique string
  */
-function createUniqueString(length, shouldSign) {
+function createUniqueString(length, key, passphrase) {
   const random = crypto.randomBytes(length).toString('hex');
-  if (shouldSign) {
+  if (key && !passphrase) {
     const signedRandom = crypto
       .createHash('SHA256')
       .update(random)
@@ -38,7 +38,23 @@ function createUniqueString(length, shouldSign) {
     return { signedRandom, random };
   }
 
-  // TODO: if signed === true, sign the string with our private key
+  if (key && passphrase) {
+    const sign = crypto.createSign('SHA256');
+    sign.write(random);
+    sign.end();
+    const signedRandom = sign.sign(
+      crypto.createPrivateKey({
+        key,
+        passphrase,
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+      }),
+      'hex',
+    );
+    return { signedRandom, random };
+  }
+
   return { random };
 }
 
@@ -48,8 +64,14 @@ function createUniqueString(length, shouldSign) {
  * @param unsignedString - string that was signed
  * @returns - boolean on whether it is valid or not
  */
-function veifyUniqueString(signedString, unsignedString) {
-  // TODO: should we use hmac with private/public key signatures <23-11-20, Vora, Deep> //
+function veifyUniqueString(signedString, unsignedString, publicKey) {
+  if (publicKey) {
+    const verify = crypto.createVerify('SHA256');
+    verify.write(unsignedString);
+    verify.end();
+    return verify.verify(publicKey, signedString, 'hex');
+  }
+
   const hash = crypto.createHash('SHA256').update(unsignedString).digest('hex');
   return signedString === hash;
 }
@@ -62,7 +84,6 @@ function veifyUniqueString(signedString, unsignedString) {
  * @returns if valid request, returns properly formated response object
  * @return if invalid request, returns array of errors with the request
  */
-
 const createOidcResponse = (opt) => async (req, res) => {
   const errors = [];
 
@@ -81,8 +102,11 @@ const createOidcResponse = (opt) => async (req, res) => {
   errors.push(...isValidOidcLogin(req));
 
   if (!errors.length && req.session.ltiPlatform) {
-    const { signedRandom, random } = createUniqueString(30, true);
-    const { random: nonce } = createUniqueString(30, false);
+    const { signedRandom, random } = createUniqueString(
+      30,
+      req.session.ltiPlatform.kid.privateKey,
+    );
+    const { random: nonce } = createUniqueString(30);
 
     const response = {
       scope: 'openid',
@@ -94,8 +118,9 @@ const createOidcResponse = (opt) => async (req, res) => {
       response_mode: 'form_post',
       nonce,
       prompt: 'none',
-      lti_message_hint: req.body.lti_message_hint && req.body.lti_message_hint,
+      lti_message_hint: req.body.lti_message_hint,
     };
+
     // Save the OIDC Login Response to reference later during current session
     req.session.ltiLoginResponse = { ...response, unsignedState: random };
 
